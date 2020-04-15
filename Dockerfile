@@ -27,6 +27,7 @@ RUN mkdir -p /opt/src/
 WORKDIR /opt/src/
 RUN chown -R bower:bower /opt/src
 USER bower
+RUN mkdir -p /opt/src/output
 RUN git clone -b stable-3.1 https://gerrit.googlesource.com/gerrit
 
 ENV WORKSPACE /opt/src/gerrit
@@ -36,4 +37,15 @@ RUN git clone -b stable-3.1 https://gerrit.googlesource.com/plugins/its-base
 RUN git clone -b stable-3.1 https://gerrit.googlesource.com/plugins/its-jira
 
 WORKDIR /opt/src/gerrit
+RUN git remote
+RUN git submodule init
+RUN git submodule sync
+RUN git config --get remote.origin.url
+RUN git submodule sync
+RUN git config -f .gitmodules --get-regexp ^submodule\.\(.+\)\.url
+RUN git config --get submodule.modules/jgit.url
+RUN git submodule update --init --recursive modules/jgit
+RUN sed -i 's/\"Gerrit-PluginName: its-jira\",/\"Gerrit-PluginName: its-jira-fixes\",/g' plugins/its-jira/BUILD
 RUN bazel build plugins/its-jira
+RUN cp bazel-bin/plugins/its-jira/its-jira.jar /opt/src/output/its-jira-fixes.jar
+
